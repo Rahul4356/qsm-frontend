@@ -939,11 +939,11 @@
             });
         }
 
-        // Configuration - Local Python Backend Testing
-        const API_BASE = 'http://localhost:8000';
-        const QUANTUM_API = 'http://localhost:8001';
+        // Configuration - Azure Backend
+        const API_BASE = 'https://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net';
+        const QUANTUM_API = 'https://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3dHV0aGVoZWZqYWplZGd5YWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU5MTI5NDAsImV4cCI6MjA0MTQ4ODk0MH0.sFpTKrxG1dRnB1VBHnWzPKdLaUYK5C2KG8h-BSZW6qU';
-        const WS_BASE = 'ws://localhost:8000'; // WebSocket for real-time updates
+        const WS_BASE = 'wss://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net'; // WebSocket for real-time updates
         
         let authToken = null;
         let currentUser = null;
