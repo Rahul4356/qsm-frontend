@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QMS - Quantum Messaging System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Progress Modal */
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 600px;
+            text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .progress-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .step-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .step-item {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #f5f5f5;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateX(10px);
+        }
+
+        .step-item.completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .step-icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .step-details {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .crypto-details {
+            background: #f0f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .crypto-details h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .crypto-details .detail-item {
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .crypto-details .detail-value {
+            font-family: monospace;
+            color: #667eea;
+        }
+
+        /* Auth Screen */
+        .auth-screen {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .auth-form {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-form h2 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .auth-switch a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Chat Screen */
+        .chat-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: row;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .user-info h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .user-info .status {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .user-item {
+            padding: 12px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+
+        .user-item:hover {
+            background: #f0f0f0;
+        }
+
+        .user-item .username {
+            font-weight: 500;
+        }
+
+        .user-item .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .user-item .status-dot.online {
+            background: #4caf50;
+        }
+
+        .user-item .status-dot.busy {
+            background: #ff9800;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            color: #333;
+        }
+
+        .security-indicators {
+            display: flex;
+            gap: 10px;
+        }
+
+        .indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .indicator.encrypted {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .indicator.quantum {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+
+        .message.mine {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .message.mine .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-bubble.critical {
+            border: 2px solid #ff9800;
+        }
+
+        .message.mine .message-bubble.critical {
+            border: 2px solid #ffd54f;
+        }
+
+        .message-type-badge {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: #ff9800;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-crypto-info {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 3px;
+        }
+
+        .message-signature-info {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 2px;
+            color: #8B5CF6;
+            font-weight: 500;
+        }
+
+        .message-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .message-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .type-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .type-btn.critical.active {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            border-color: #ff9800;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            resize: none;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn.critical {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .no-chat {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .pending-requests {
+            padding: 10px;
+            background: #fff3cd;
+            border-bottom: 1px solid #ffc107;
+        }
+
+        .request-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-accept {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-reject {
+            background: #f44336;
+            color: white;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .crypto-status {
+            background: #e1f5fe;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #01579b;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .quantum-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #00c853 0%, #00897b 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .session-info {
+            padding: 10px;
+            background: #e8f5e9;
+            border-top: 1px solid #4caf50;
+            font-size: 12px;
+        }
+
+        .session-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+        }
+
+        .session-info-value {
+            font-weight: 600;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Modal -->
+    <div id="progressModal" class="progress-modal">
+        <div class="progress-content">
+            <h2 class="progress-title" id="progressTitle">Establishing Quantum-Secure Connection</h2>
+            <div class="step-list" id="stepList">
+                <!-- Steps will be added dynamically -->
+            </div>
+            <div id="cryptoDetails" class="crypto-details" style="display:none;">
+                <!-- Crypto details will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Auth Screen -->
+        <div id="authScreen" class="auth-screen">
+            <div class="auth-form">
+                <h2 id="authTitle">Quantum Messaging System</h2>
+                <div id="errorMsg" class="error-message" style="display:none;"></div>
+                <div id="successMsg" class="success-message" style="display:none;"></div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                </form>
+
+                <form id="registerForm" style="display:none;">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="regUsername" pattern="[a-zA-Z0-9_\-]{3,50}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="regEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="regPassword" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn">Register</button>
+                </form>
+
+                <div class="auth-switch">
+                    <span id="switchText">Don't have an account? </span>
+                    <a href="#" id="switchAuth">Register</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chatScreen" class="chat-screen">
+            <div class="sidebar">
+                <div class="user-info">
+                    <h3 id="currentUsername">Username</h3>
+                    <div class="status">
+                        <span id="userStatus">Ready to connect</span>
+                        <span class="quantum-badge" id="quantumBadge" style="display:none;">Quantum Ready</span>
+                    </div>
+                </div>
+                
+                <div id="pendingRequests" class="pending-requests" style="display:none;">
+                    <strong>Pending Requests:</strong>
+                    <div id="requestsList"></div>
+                </div>
+
+                <div id="sessionInfo" class="session-info" style="display:none;">
+                    <div class="session-info-item">
+                        <span>Session ID:</span>
+                        <span class="session-info-value" id="sessionId">-</span>
+                    </div>
+                    <div class="session-info-item">
+                        <span>Algorithm:</span>
+                        <span class="session-info-value">ML-KEM-768</span>
+                    </div>
+                    <div class="session-info-item">
+                        <span>Signatures:</span>
+                        <span class="session-info-value">Falcon-512</span>
+                    </div>
+                </div>
+
+                <div id="cryptoStatus" class="crypto-status" style="display:none;">
+                    <!-- Crypto status will appear here -->
+                </div>
+
+                <div class="users-list" id="usersList">
+                    <!-- Users will be loaded here -->
+                </div>
+
+                <div style="padding: 10px;">
+                    <button class="btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div id="noChatSelected" class="no-chat">
+                    <div style="text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+                        <div>Select a user to establish a quantum-secured connection</div>
+                        <div style="font-size: 14px; color: #666; margin-top: 10px;">
+                            Using ML-KEM-768 and Falcon-512 algorithms
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chatContainer" style="display:none; flex:1; display:flex; flex-direction:column;">
+                    <div class="chat-header">
+                        <div>
+                            <h3 id="chatWith">Chat with User</h3>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;" id="sessionStatus">
+                                Quantum-secured session active
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="security-indicators">
+                                <span class="indicator encrypted">🔒 AES-256</span>
+                                <span class="indicator quantum">⚛️ Quantum-Safe</span>
+                            </div>
+                            <button class="btn-small btn-reject" onclick="terminateSession()">End Session</button>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-container" id="messagesContainer">
+                        <!-- Messages will appear here -->
+                    </div>
+                    
+                    <div class="message-input-area">
+                        <div class="message-type-selector">
+                            <button class="type-btn active" id="secureBtn" onclick="setMessageType('secured')">
+                                🔒 Secure Message
+                            </button>
+                            <button class="type-btn critical" id="criticalBtn" onclick="setMessageType('critical')">
+                                ⚠️ Critical Message (Wrap & Sign)
+                            </button>
+                        </div>
+                        <div class="input-row">
+                            <textarea id="messageInput" class="message-input" placeholder="Type your quantum-encrypted message..." rows="1"></textarea>
+                            <button onclick="sendMessage()" class="send-btn" id="sendButton">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'info' ? '#007bff' : type === 'success' ? '#28a745' : '#dc3545'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 4px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 300px;
+                word-wrap: break-word;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            document.body.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        function createConfirmationModal(title, message, confirmText = 'Yes', cancelText = 'No') {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10001;
+                `;
+                
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content';
+                modalContent.style.cssText = `
+                    background: linear-gradient(135deg, #1a1a2e, #16213e);
+                    border: 1px solid #00d4ff;
+                    border-radius: 12px;
+                    padding: 30px;
+                    max-width: 400px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+                `;
+                
+                modalContent.innerHTML = `
+                    <h3 style="color: #00d4ff; margin: 0 0 15px 0; font-size: 1.3em;">${title}</h3>
+                    <p style="color: #e0e6ed; margin: 0 0 25px 0; line-height: 1.5;">${message}</p>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="confirmBtn" style="
+                            background: linear-gradient(45deg, #00d4ff, #0099cc);
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            transition: all 0.3s ease;
+                        ">${confirmText}</button>
+                        <button id="cancelBtn" style="
+                            background: linear-gradient(45deg, #555, #777);
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            transition: all 0.3s ease;
+                        ">${cancelText}</button>
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                const confirmBtn = modal.querySelector('#confirmBtn');
+                const cancelBtn = modal.querySelector('#cancelBtn');
+                
+                confirmBtn.addEventListener('click', () => {
+                    modal.remove();
+                    resolve(true);
+                });
+                
+                cancelBtn.addEventListener('click', () => {
+                    modal.remove();
+                    resolve(false);
+                });
+                
+                // ESC key support
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscape);
+                        resolve(false);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            });
+        }
+
+        function createConnectionRequestModal(senderUsername, requestId) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10002;
+                `;
+                
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content';
+                modalContent.style.cssText = `
+                    background: linear-gradient(135deg, #1a1a2e, #16213e);
+                    border: 2px solid #00d4ff;
+                    border-radius: 15px;
+                    padding: 40px;
+                    max-width: 450px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 25px 50px rgba(0, 212, 255, 0.4);
+                    animation: modalSlideIn 0.3s ease-out;
+                `;
+                
+                modalContent.innerHTML = `
+                    <div style="font-size: 3em; margin-bottom: 15px;">🔐</div>
+                    <h3 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 1.4em;">Quantum Connection Request</h3>
+                    <p style="color: #e0e6ed; margin: 0 0 25px 0; font-size: 1.1em; line-height: 1.5;">
+                        <strong style="color: #00d4ff;">${senderUsername}</strong> wants to establish a<br>
+                        quantum-encrypted secure connection
+                    </p>
+                    <div style="color: #aaa; font-size: 0.9em; margin-bottom: 25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <div style="margin-bottom: 5px;">🔑 ML-KEM-768 Key Exchange</div>
+                        <div style="margin-bottom: 5px;">✍️ Falcon-512 Signatures</div>
+                        <div>🛡️ End-to-End Encryption</div>
+                    </div>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="acceptBtn" style="
+                            background: linear-gradient(45deg, #4caf50, #45a049);
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 1.1em;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                        ">🔐 Accept</button>
+                        <button id="declineBtn" style="
+                            background: linear-gradient(45deg, #f44336, #da190b);
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 1.1em;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+                        ">❌ Decline</button>
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                const acceptBtn = modal.querySelector('#acceptBtn');
+                const declineBtn = modal.querySelector('#declineBtn');
+                
+                acceptBtn.addEventListener('click', () => {
+                    modal.remove();
+                    resolve({ accepted: true, requestId });
+                });
+                
+                declineBtn.addEventListener('click', () => {
+                    modal.remove();
+                    resolve({ accepted: false, requestId });
+                });
+            });
+        }
+
+        // Configuration - Local Python Backend Testing
+        const API_BASE = 'http://localhost:8000';
+        const QUANTUM_API = 'http://localhost:8001';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3dHV0aGVoZWZqYWplZGd5YWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU5MTI5NDAsImV4cCI6MjA0MTQ4ODk0MH0.sFpTKrxG1dRnB1VBHnWzPKdLaUYK5C2KG8h-BSZW6qU';
+        const WS_BASE = 'ws://localhost:8000'; // WebSocket for real-time updates
+        
+        let authToken = null;
+        let currentUser = null;
+        let currentSession = null;
+        let publicKeys = null;
+        let messagePollingInterval = null;
+        let usersPollingInterval = null;
+        let requestsPollingInterval = null;
+        let sessionPollingInterval = null;
+        let websocket = null;
+        let useWebSocket = false; // Toggle between WebSocket and polling
+        let currentMessageType = 'secured';
+        let lastMessageId = null;
+        let isQuantumReady = false;
+
+        // Progress Modal Functions
+        function showProgress(title, steps) {
+            document.getElementById('progressTitle').textContent = title;
+            const stepList = document.getElementById('stepList');
+            stepList.innerHTML = '';
+            
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item';
+                stepDiv.id = `step-${index}`;
+                stepDiv.innerHTML = `
+                    <span class="step-icon">${step.icon}</span>
+                    <div>
+                        <div>${step.text}</div>
+                        <div class="step-details">${step.details || ''}</div>
+                    </div>
+                `;
+                stepList.appendChild(stepDiv);
+            });
+            
+            document.getElementById('progressModal').style.display = 'flex';
+        }
+
+        function updateStep(index, status) {
+            const step = document.getElementById(`step-${index}`);
+            if (step) {
+                step.className = `step-item ${status}`;
+                if (status === 'completed') {
+                    step.querySelector('.step-icon').textContent = '✓';
+                }
+            }
+        }
+
+        function showCryptoDetails(details) {
+            const detailsDiv = document.getElementById('cryptoDetails');
+            detailsDiv.innerHTML = `
+                <h4>Cryptographic Details</h4>
+                ${Object.entries(details).map(([key, value]) => `
+                    <div class="detail-item">
+                        <span>${key}:</span>
+                        <span class="detail-value">${value}</span>
+                    </div>
+                `).join('')}
+            `;
+            detailsDiv.style.display = 'block';
+        }
+
+        function hideProgress() {
+            setTimeout(() => {
+                document.getElementById('progressModal').style.display = 'none';
+                document.getElementById('cryptoDetails').style.display = 'none';
+            }, 2000);
+        }
+
+        // Message Type Selection
+        function setMessageType(type) {
+            currentMessageType = type;
+            document.getElementById('secureBtn').classList.toggle('active', type === 'secured');
+            document.getElementById('criticalBtn').classList.toggle('active', type === 'critical');
+            document.getElementById('sendButton').className = type === 'critical' ? 'send-btn critical' : 'send-btn';
+            document.getElementById('messageInput').placeholder = type === 'critical' 
+                ? 'Type your critical message (will use wrap-and-sign protocol)...' 
+                : 'Type your quantum-encrypted message...';
+        }
+
+        // Auth Functions
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loginData = {
+                username: document.getElementById('loginUsername').value,
+                password: document.getElementById('loginPassword').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.access_token;
+                    currentUser = data.username;
+                    isQuantumReady = data.quantum_ready || false;
+                    localStorage.setItem('token', authToken);
+                    localStorage.setItem('username', currentUser);
+                    showChat();
+                } else {
+                    showError(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                showError('Connection error: ' + error.message);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userData = {
+                username: document.getElementById('regUsername').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('Registration successful! Please login.');
+                    setTimeout(() => {
+                        document.getElementById('switchAuth').click();
+                    }, 1500);
+                } else {
+                    showError(data.detail || 'Registration failed');
+                }
+            } catch (error) {
+                showError('Connection error: ' + error.message);
+            }
+        });
+
+        document.getElementById('switchAuth').addEventListener('click', (e) => {
+            e.preventDefault();
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const switchText = document.getElementById('switchText');
+            const switchAuth = document.getElementById('switchAuth');
+            
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                switchText.textContent = "Don't have an account? ";
+                switchAuth.textContent = 'Register';
+                document.getElementById('authTitle').textContent = 'Quantum Messaging System';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                switchText.textContent = 'Already have an account? ';
+                switchAuth.textContent = 'Login';
+                document.getElementById('authTitle').textContent = 'Create Account';
+            }
+        });
+
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            setTimeout(() => errorMsg.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successMsg = document.getElementById('successMsg');
+            successMsg.textContent = message;
+            successMsg.style.display = 'block';
+            setTimeout(() => successMsg.style.display = 'none', 5000);
+        }
+
+        // Chat Functions
+        async function showChat() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'flex';
+            document.getElementById('currentUsername').textContent = currentUser;
+            
+            if (isQuantumReady) {
+                document.getElementById('quantumBadge').style.display = 'inline-block';
+            }
+            
+            // Check quantum service status
+            try {
+                const response = await fetch(`${QUANTUM_API}/info`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+                if (response.ok) {
+                    const info = await response.json();
+                    console.log('Quantum service info:', info);
+                }
+            } catch (error) {
+                console.error('Quantum service check failed:', error);
+            }
+            
+            loadUsers();
+            checkPendingRequests();
+            checkSessionStatus();
+            
+            // Try WebSocket first, fall back to polling
+            initWebSocket();
+            
+            // Give WebSocket 5 seconds to connect, then fall back to polling if needed
+            const pollStartTimeout = setTimeout(() => {
+                if (!useWebSocket && websocket && websocket.readyState !== WebSocket.OPEN) {
+                    console.log('⏰ WebSocket timeout reached - Using polling mode');
+                    console.log('🔄 WebSocket state:', websocket ? websocket.readyState : 'null');
+                    console.log('🔄 useWebSocket flag:', useWebSocket);
+                    usersPollingInterval = setInterval(loadUsers, 5000);
+                    requestsPollingInterval = setInterval(checkPendingRequests, 3000);
+                    sessionPollingInterval = setInterval(checkSessionStatus, 5000);
+                } else {
+                    console.log('✅ WebSocket connected, skipping polling setup');
+                }
+            }, 5000);
+            
+            // Store timeout ID to clear it if WebSocket connects
+            window.pollStartTimeout = pollStartTimeout;
+        }
+
+        async function loadUsers() {
+            if (!authToken || !currentUser) {
+                console.log('⚠️ No auth token, skipping loadUsers');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/available`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const users = await response.json();
+                const usersList = document.getElementById('usersList');
+                
+                usersList.innerHTML = '<h4 style="padding: 10px; color: #666;">Available Users</h4>';
+                
+                if (users.length === 0) {
+                    usersList.innerHTML += '<div style="padding: 10px; text-align: center; color: #999;">No users online</div>';
+                }
+                
+                users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `
+                        <div>
+                            <span class="username">${user.username}</span>
+                            ${user.has_quantum_keys ? '<span class="quantum-badge" style="font-size: 10px;">Q</span>' : ''}
+                        </div>
+                        <span class="status-dot ${user.status}"></span>
+                    `;
+                    
+                    console.log(`👤 User ${user.username}: can_connect=${user.can_connect}, currentSession=${!!currentSession}`);
+                    
+                    if (user.can_connect && !currentSession) {
+                        userItem.style.cursor = 'pointer';
+                        userItem.onclick = () => initiateConnection(user.username);
+                        console.log(`✅ ${user.username} is clickable`);
+                    } else {
+                        userItem.style.opacity = '0.5';
+                        userItem.style.cursor = 'not-allowed';
+                        if (!user.can_connect) {
+                            userItem.title = 'User is in another session';
+                        } else if (currentSession) {
+                            userItem.title = 'End your current session first';
+                        }
+                        console.log(`❌ ${user.username} is NOT clickable (can_connect: ${user.can_connect}, session: ${!!currentSession})`);
+                    }
+                    
+                    usersList.appendChild(userItem);
+                });
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        async function initiateConnection(username) {
+            console.log('🔄 Attempting to initiate connection with:', username);
+            console.log('🔍 Current session:', currentSession);
+            console.log('🔍 Auth token:', authToken ? 'Present' : 'Missing');
+            console.log('🔍 Current user:', currentUser);
+            
+            // Check if already in an active session
+            if (currentSession) {
+                console.log('❌ Session already active, blocking new connection');
+                showError('Please end your current session before connecting to another user');
+                return;
+            }
+            
+            // Step 1: Show confirmation dialog BEFORE generating keys
+            const confirmed = await createConfirmationModal(
+                'Send Connection Request?',
+                `Do you want to establish a quantum-secure connection with ${username}?`,
+                'Send Request',
+                'Cancel'
+            );
+            
+            if (!confirmed) {
+                return; // User cancelled, don't generate keys
+            }
+            
+            // Step 2: NOW generate keys after confirmation
+            showProgress('Establishing Quantum-Secure Connection', [
+                {icon: '🔑', text: 'Generating ML-KEM-768 Keys', details: 'Post-quantum key exchange (1184 byte public key)'},
+                {icon: '🔏', text: 'Generating Falcon-512 Keys', details: 'Quantum-resistant signatures (897 byte public key)'},
+                {icon: '🛡️', text: 'Generating ECDSA Keys', details: 'Classical wrapper for hybrid security'},
+                {icon: '📤', text: 'Sending Connection Request', details: `To ${username} with public keys`},
+            ]);
+
+            try {
+                updateStep(0, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                
+                const keyResponse = await fetch(`${QUANTUM_API}/api/quantum/generate_keys`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({user_id: currentUser})
+                });
+                
+                if (!keyResponse.ok) {
+                    const error = await keyResponse.json();
+                    throw new Error(error.detail || 'Key generation failed');
+                }
+                
+                const keyData = await keyResponse.json();
+                publicKeys = keyData.keys;
+                updateStep(0, 'completed');
+                
+                updateStep(1, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(1, 'completed');
+                
+                updateStep(2, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(2, 'completed');
+                
+                updateStep(3, 'active');
+                const response = await fetch(`${API_BASE}/api/connection/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        receiver_username: username,
+                        sender_public_keys: publicKeys,
+                        metadata: {
+                            client_version: '2.0.0',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStep(3, 'completed');
+                    showCryptoDetails({
+                        'ML-KEM Public Key': '1184 bytes generated',
+                        'Falcon Public Key': '897 bytes generated',
+                        'ECDSA Public Key': '91 bytes generated',
+                        'Total Key Material': '2172 bytes',
+                        'Security Level': 'NIST Level 3',
+                        'Implementation': keyData.quantum_implementation || 'Unknown'
+                    });
+                    hideProgress();
+                    
+                    document.getElementById('cryptoStatus').innerHTML = `
+                        <strong>🔐 Keys Generated:</strong><br>
+                        • ML-KEM-768 (1184 bytes)<br>
+                        • Falcon-512 (897 bytes)<br>
+                        • ECDSA-P256 (91 bytes)<br>
+                        <small>Waiting for ${username} to accept...</small>
+                    `;
+                    document.getElementById('cryptoStatus').style.display = 'block';
+                } else {
+                    hideProgress();
+                    alert(data.detail || 'Failed to send request');
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Connection error: ' + error.message);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const steps = currentMessageType === 'critical' ? [
+                {icon: '📝', text: 'Preparing Message', details: `${message.length} characters`},
+                {icon: '🔐', text: 'Encrypting with AES-256-GCM', details: 'Using quantum-derived key'},
+                {icon: '🖊️', text: 'Creating Falcon-512 Signature', details: '~690 bytes quantum-resistant'},
+                {icon: '🛡️', text: 'Wrapping with ECDSA-P256', details: '~70 bytes classical wrapper'},
+                {icon: '📤', text: 'Sending Secured Message', details: 'Encrypted + Dual signed'}
+            ] : [
+                {icon: '📝', text: 'Preparing Message', details: `${message.length} characters`},
+                {icon: '🔐', text: 'Encrypting with AES-256-GCM', details: 'Using shared secret'},
+                {icon: '✍️', text: 'Creating Falcon-512 Signature', details: 'Quantum-resistant signature'},
+                {icon: '📤', text: 'Sending Encrypted Message', details: 'Quantum-secured'}
+            ];
+            
+            showProgress(currentMessageType === 'critical' ? 'Sending Critical Message' : 'Sending Secure Message', steps);
+            
+            try {
+                // Animate through steps
+                for (let i = 0; i < steps.length - 1; i++) {
+                    updateStep(i, 'active');
+                    await new Promise(r => setTimeout(r, 400));
+                    updateStep(i, 'completed');
+                }
+                
+                updateStep(steps.length - 1, 'active');
+                
+                const response = await fetch(`${API_BASE}/api/message/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        content: message,
+                        message_type: currentMessageType,
+                        metadata: {
+                            client_timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    updateStep(steps.length - 1, 'completed');
+                    
+                    showCryptoDetails({
+                        'Message ID': result.message_id.substring(0, 8) + '...',
+                        'Encryption': 'AES-256-GCM',
+                        'Signature': result.quantum_algorithm || 'Falcon-512',
+                        'Protocol': currentMessageType === 'critical' ? 'Wrap-and-Sign' : 'Standard',
+                        'Status': 'Delivered'
+                    });
+                    
+                    input.value = '';
+                    hideProgress();
+                    loadMessages();
+                } else {
+                    hideProgress();
+                    const error = await response.json();
+                    alert('Failed to send message: ' + (error.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Error sending message: ' + error.message);
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                let url = `${API_BASE}/api/messages?limit=50`;
+                if (lastMessageId) {
+                    url += `&last_message_id=${lastMessageId}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: {'Authorization': `Bearer ${authToken}`}
+                });
+                
+                const messages = await response.json();
+                const container = document.getElementById('messagesContainer');
+                
+                if (!lastMessageId) {
+                    container.innerHTML = '';
+                }
+                
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.is_mine ? 'mine' : ''}`;
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = `message-bubble ${msg.message_type === 'critical' ? 'critical' : ''}`;
+                    
+                    let verificationIcon = '';
+                    if (msg.verified) {
+                        verificationIcon = '✓✓';
+                    } else if (msg.is_mine) {
+                        verificationIcon = '✓';
+                    } else {
+                        verificationIcon = '⚠️';
+                    }
+                    
+                    // Generate signature attribution text for critical messages
+                    const getSignatureAttribution = (msg) => {
+                        if (msg.message_type === 'critical') {
+                            if (msg.is_mine) {
+                                return 'Signed by You';
+                            } else {
+                                return `Signed by ${msg.sender_username}`;
+                            }
+                        }
+                        return '';
+                    };
+                    
+                    if (msg.message_type === 'critical') {
+                        const signatureAttribution = getSignatureAttribution(msg);
+                        bubble.innerHTML = `
+                            <span class="message-type-badge">CRITICAL</span>
+                            ${msg.content}
+                            <div class="message-time">
+                                ${new Date(msg.timestamp).toLocaleTimeString()}
+                                ${verificationIcon}
+                            </div>
+                            <div class="message-crypto-info">
+                                🔐 ${msg.quantum_algorithm || 'Wrap-and-Sign Protocol'}
+                            </div>
+                            <div class="message-signature-info">
+                                ✍️ ${signatureAttribution}
+                            </div>
+                        `;
+                    } else {
+                        bubble.innerHTML = `
+                            ${msg.content}
+                            <div class="message-time">
+                                ${new Date(msg.timestamp).toLocaleTimeString()}
+                                ${verificationIcon}
+                            </div>
+                            ${msg.quantum_algorithm ? `<div class="message-crypto-info">🔐 ${msg.quantum_algorithm}</div>` : ''}
+                        `;
+                    }
+                    
+                    messageDiv.appendChild(bubble);
+                    container.appendChild(messageDiv);
+                    
+                    lastMessageId = msg.id;
+                });
+                
+                if (messages.length > 0) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+            }
+        }
+
+        async function checkPendingRequests() {
+            if (!authToken || !currentUser) {
+                console.log('⚠️ No auth token, skipping checkPendingRequests');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/connection/pending`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                const requests = await response.json();
+                const pendingDiv = document.getElementById('pendingRequests');
+                const requestsList = document.getElementById('requestsList');
+                
+                if (requests.length > 0) {
+                    pendingDiv.style.display = 'block';
+                    requestsList.innerHTML = '';
+                    
+                    requests.forEach(req => {
+                        const item = document.createElement('div');
+                        item.className = 'request-item';
+                        item.innerHTML = `
+                            <span>${req.sender_username}</span>
+                            <div class="request-actions">
+                                <button class="btn-small btn-accept" onclick="acceptConnection('${req.request_id}', '${req.sender_username}')">Accept</button>
+                                <button class="btn-small btn-reject" onclick="respondToRequest('${req.request_id}', false)">Reject</button>
+                            </div>
+                        `;
+                        requestsList.appendChild(item);
+                    });
+                } else {
+                    pendingDiv.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to check pending requests:', error);
+            }
+        }
+
+        async function acceptConnection(requestId, senderUsername) {
+            showProgress('Establishing Secure Channel', [
+                {icon: '🔑', text: 'Generating Your Keys', details: 'Creating quantum-resistant keypairs'},
+                {icon: '🔄', text: 'Performing Key Exchange', details: 'ML-KEM-768 encapsulation'},
+                {icon: '🔒', text: 'Deriving Shared Secret', details: 'AES-256 session key'},
+                {icon: '✅', text: 'Establishing Session', details: `With ${senderUsername}`},
+            ]);
+
+            try {
+                updateStep(0, 'active');
+                const keyResponse = await fetch(`${QUANTUM_API}/api/quantum/generate_keys`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({user_id: currentUser})
+                });
+                
+                if (!keyResponse.ok) throw new Error('Key generation failed');
+                
+                const keyData = await keyResponse.json();
+                publicKeys = keyData.keys;
+                updateStep(0, 'completed');
+                
+                updateStep(1, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                
+                const response = await fetch(`${API_BASE}/api/connection/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        request_id: requestId,
+                        accept: true,
+                        receiver_public_keys: publicKeys,
+                        metadata: {
+                            client_version: '2.0.0',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStep(1, 'completed');
+                    updateStep(2, 'active');
+                    await new Promise(r => setTimeout(r, 500));
+                    updateStep(2, 'completed');
+                    updateStep(3, 'active');
+                    await new Promise(r => setTimeout(r, 500));
+                    updateStep(3, 'completed');
+                    
+                    currentSession = data;
+                    hideProgress();
+                    startChat(data.peer_username);
+                    
+                    document.getElementById('sessionInfo').style.display = 'block';
+                    document.getElementById('sessionId').textContent = data.session_id.substring(0, 8) + '...';
+                    
+                    document.getElementById('cryptoStatus').innerHTML = `
+                        <strong>🔐 Quantum Session Active:</strong><br>
+                        • Algorithm: ${data.quantum_algorithm || 'ML-KEM-768'}<br>
+                        • Encryption: AES-256-GCM<br>
+                        • Signatures: Falcon-512 + ECDSA<br>
+                    `;
+                    document.getElementById('cryptoStatus').style.display = 'block';
+                }
+                
+                checkPendingRequests();
+            } catch (error) {
+                hideProgress();
+                alert('Failed to accept request: ' + error.message);
+            }
+        }
+
+        async function respondToRequest(requestId, accept) {
+            if (!accept) {
+                try {
+                    await fetch(`${API_BASE}/api/connection/respond`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${authToken}`,
+                            'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({request_id: requestId, accept: false})
+                    });
+                    checkPendingRequests();
+                } catch (error) {
+                    alert('Failed to reject request');
+                }
+            }
+        }
+
+        async function checkSessionStatus() {
+            if (!authToken || !currentUser) {
+                console.log('⚠️ No auth token, skipping checkSessionStatus');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/session/status`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                const status = await response.json();
+                
+                if (status.active) {
+                    if (!currentSession) {
+                        currentSession = status;
+                        startChat(status.peer_username);
+                        
+                        document.getElementById('sessionInfo').style.display = 'block';
+                        document.getElementById('sessionId').textContent = status.session_id.substring(0, 8) + '...';
+                        
+                        document.getElementById('cryptoStatus').innerHTML = `
+                            <strong>🔐 Session Restored:</strong><br>
+                            • Peer: ${status.peer_username}<br>
+                            • Messages: ${status.message_count}<br>
+                            • Quantum-secured: ✅<br>
+                        `;
+                        document.getElementById('cryptoStatus').style.display = 'block';
+                    }
+                } else {
+                    if (currentSession) {
+                        endChat();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check session status:', error);
+            }
+        }
+
+        function startChat(peerUsername) {
+            document.getElementById('noChatSelected').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            document.getElementById('chatWith').textContent = `Chat with ${peerUsername}`;
+            document.getElementById('sessionStatus').textContent = 'Quantum-secured session active';
+            
+            lastMessageId = null;
+            loadMessages();
+            messagePollingInterval = setInterval(loadMessages, 2000);
+        }
+
+        function endChat() {
+            currentSession = null;
+            publicKeys = null;
+            lastMessageId = null;
+            document.getElementById('noChatSelected').style.display = 'flex';
+            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('messagesContainer').innerHTML = '';
+            document.getElementById('cryptoStatus').style.display = 'none';
+            document.getElementById('sessionInfo').style.display = 'none';
+            
+            if (messagePollingInterval) {
+                clearInterval(messagePollingInterval);
+                messagePollingInterval = null;
+            }
+        }
+
+        async function terminateSession(skipConfirmation = false) {
+            if (!skipConfirmation && !confirm('End this secure session? All keys will be destroyed for forward secrecy.')) return;
+            
+            showProgress('Terminating Session', [
+                {icon: '🔓', text: 'Closing Secure Channel', details: 'Ending encrypted communication'},
+                {icon: '🗑️', text: 'Destroying Session Keys', details: 'Wiping cryptographic material'},
+                {icon: '✅', text: 'Session Terminated', details: 'Connection closed securely'},
+            ]);
+            
+            updateStep(0, 'active');
+            
+            try {
+                await fetch(`${API_BASE}/api/session/terminate`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                updateStep(0, 'completed');
+                updateStep(1, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(1, 'completed');
+                updateStep(2, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(2, 'completed');
+                
+                hideProgress();
+                endChat();
+            } catch (error) {
+                hideProgress();
+                console.error('Failed to terminate session:', error);
+            }
+        }
+
+        async function logout() {
+            try {
+                // Terminate active session without confirmation
+                if (currentSession) {
+                    await terminateSession(true); // Skip confirmation on logout
+                }
+                
+                // Close WebSocket connection immediately
+                if (websocket) {
+                    websocket.close(1000, 'Logout'); // Normal closure
+                }
+                closeWebSocket();
+                
+                // Clear all polling intervals and timeouts
+                const intervals = [usersPollingInterval, requestsPollingInterval, sessionPollingInterval, messagePollingInterval];
+                intervals.forEach(interval => {
+                    if (interval) {
+                        clearInterval(interval);
+                    }
+                });
+                
+                if (window.pollStartTimeout) {
+                    clearTimeout(window.pollStartTimeout);
+                    window.pollStartTimeout = null;
+                }
+                
+                usersPollingInterval = null;
+                requestsPollingInterval = null;
+                sessionPollingInterval = null;
+                messagePollingInterval = null;
+                
+                console.log('🛑 All polling intervals and timeouts cleared');
+                
+                // Call backend logout endpoint
+                if (authToken) {
+                    try {
+                        await fetch(`${API_BASE}/api/logout`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${authToken}`,
+                                'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (e) {
+                        console.log('Logout API call failed:', e);
+                    }
+                }
+                
+                // Clear local storage completely
+                localStorage.clear();
+                
+                // Reset global variables
+                authToken = null;
+                currentUser = null;
+                currentSession = null;
+                publicKeys = null;
+                isQuantumReady = false;
+                
+                // Reload page
+                window.location.reload();
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force reload even if logout fails
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        // WebSocket Functions (Real-time communication)
+        function initWebSocket() {
+            if (!authToken || !currentUser || websocket) return;
+            
+            try {
+                console.log('🔌 Attempting WebSocket connection to:', `${WS_BASE}/ws/${currentUser}`);
+                websocket = new WebSocket(`${WS_BASE}/ws/${currentUser}`);
+                
+                websocket.onopen = function() {
+                    console.log('✅ WebSocket connected - Real-time mode enabled');
+                    useWebSocket = true;
+                    
+                    // Clear the polling timeout since WebSocket connected
+                    if (window.pollStartTimeout) {
+                        clearTimeout(window.pollStartTimeout);
+                        window.pollStartTimeout = null;
+                    }
+                    
+                    // Stop polling immediately since WebSocket is working
+                    if (usersPollingInterval) {
+                        clearInterval(usersPollingInterval);
+                        usersPollingInterval = null;
+                        console.log('🛑 Stopped users polling');
+                    }
+                    if (requestsPollingInterval) {
+                        clearInterval(requestsPollingInterval);
+                        requestsPollingInterval = null;
+                        console.log('🛑 Stopped requests polling');
+                    }
+                    if (sessionPollingInterval) {
+                        clearInterval(sessionPollingInterval);
+                        sessionPollingInterval = null;
+                        console.log('🛑 Stopped session polling');
+                    }
+                    
+                    console.log('🎉 All polling stopped - WebSocket active!');
+                    
+                    // Send heartbeat every 30 seconds to keep connection alive
+                    setInterval(() => {
+                        if (websocket && websocket.readyState === WebSocket.OPEN) {
+                            websocket.send(JSON.stringify({ type: 'heartbeat' }));
+                        }
+                    }, 30000);
+                };
+                
+                websocket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('WebSocket message received:', data);
+                        
+                        switch(data.type) {
+                            case 'new_message':
+                                console.log('New message notification');
+                                loadMessages();
+                                break;
+                            case 'connection_request':
+                                console.log('New connection request');
+                                checkPendingRequests();
+                                showNotification(`New connection request from ${data.sender}`, 'info');
+                                break;
+                            case 'user_status_update':
+                                console.log('User status update');
+                                loadUsers();
+                                break;
+                            case 'session_update':
+                                console.log('Session update');
+                                checkSessionStatus();
+                                break;
+                            case 'pong':
+                                // Heartbeat response
+                                break;
+                            default:
+                                console.log('Unknown WebSocket message type:', data.type);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+                
+                websocket.onclose = function(event) {
+                    console.log('🔌 WebSocket disconnected - Code:', event.code, 'Reason:', event.reason);
+                    console.log('🔄 Falling back to polling mode');
+                    websocket = null;
+                    useWebSocket = false;
+                    
+                    // Restart polling as fallback only if user is still logged in
+                    if (authToken && currentUser) {
+                        console.log('🔄 Starting polling fallback...');
+                        usersPollingInterval = setInterval(loadUsers, 5000);
+                        requestsPollingInterval = setInterval(checkPendingRequests, 3000);
+                        sessionPollingInterval = setInterval(checkSessionStatus, 5000);
+                    }
+                };
+                
+                websocket.onerror = function(error) {
+                    console.error('❌ WebSocket error:', error);
+                    console.log('🔧 WebSocket state:', websocket ? websocket.readyState : 'null');
+                    useWebSocket = false;
+                };
+                
+            } catch (error) {
+                console.error('❌ WebSocket initialization failed:', error);
+                console.log('🔄 WebSocket not available, will use polling');
+                useWebSocket = false;
+            }
+        }
+        
+        function closeWebSocket() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+                useWebSocket = false;
+            }
+        }
+
+        // Auto-resize message input
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+
+        // Send message on Enter (Shift+Enter for new line)
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Load from localStorage on page load
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            
+            if (token && username) {
+                authToken = token;
+                currentUser = username;
+                showChat();
+            }
+        });
+
+        // Handle visibility change to pause/resume polling
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && messagePollingInterval) {
+                clearInterval(messagePollingInterval);
+                messagePollingInterval = null;
+            } else if (!document.hidden && currentSession) {
+                loadMessages();
+                messagePollingInterval = setInterval(loadMessages, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
