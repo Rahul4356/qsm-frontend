@@ -320,8 +320,47 @@
         .messages-container {
             flex: 1;
             padding: 20px;
-            overflow-y: auto;
+            overflow-y: auto; /* Changed from scroll */
+            overflow-x: hidden;
             background: #fafafa;
+            position: relative;
+            height: calc(100vh - 300px); /* Adjust based on your layout */
+            max-height: 600px; /* Set a max height */
+        }
+
+        /* Custom scrollbar styles */
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Ensure chat container has proper height */
+        #chatContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: calc(100vh - 100px);
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
         }
 
         .message {
@@ -985,6 +1024,20 @@
         let currentMessageType = 'secured';
         let lastMessageId = null;
         let isQuantumReady = false;
+        
+        // Add flags to prevent duplicate message processing
+        let processingMessage = false;
+        let messageCache = new Set(); // Track processed message IDs
+
+        // Helper function for auto-scrolling
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 100);
+            }
+        }
 
         // Load configuration from backend
         async function loadConfiguration() {
@@ -1461,7 +1514,12 @@
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             
-            if (!message) return;
+            if (!message || processingMessage) return; // Check flag
+            
+            // Disable input while sending
+            input.disabled = true;
+            const sendBtn = document.querySelector('.send-button, #sendButton');
+            if (sendBtn) sendBtn.disabled = true;
             
             const steps = currentMessageType === 'critical' ? [
                 {icon: '📝', text: 'Preparing Message', details: `${message.length} characters`},
@@ -1496,10 +1554,7 @@
                     },
                     body: JSON.stringify({
                         content: message,
-                        message_type: currentMessageType,
-                        metadata: {
-                            client_timestamp: new Date().toISOString()
-                        }
+                        message_type: currentMessageType
                     })
                 });
                 
@@ -1515,21 +1570,29 @@
                         'Status': 'Delivered'
                     });
                     
-                    input.value = '';
+                    input.value = ''; // Clear input
                     hideProgress();
-                    loadMessages();
+                    await loadMessages(); // Load new messages
                 } else {
                     hideProgress();
                     const error = await response.json();
-                    alert('Failed to send message: ' + (error.detail || 'Unknown error'));
+                    showError('Failed to send message: ' + (error.detail || 'Unknown error'));
                 }
             } catch (error) {
                 hideProgress();
-                alert('Error sending message: ' + error.message);
+                showError('Error sending message: ' + error.message);
+            } finally {
+                // Re-enable input
+                input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                input.focus();
             }
         }
 
         async function loadMessages() {
+            if (processingMessage) return; // Prevent concurrent calls
+            processingMessage = true;
+            
             try {
                 let url = `${API_BASE}/api/messages?limit=50`;
                 if (lastMessageId) {
@@ -1548,6 +1611,10 @@
                 }
                 
                 messages.forEach(msg => {
+                    // Skip if already processed
+                    if (messageCache.has(msg.id)) return;
+                    messageCache.add(msg.id);
+                    
                     const messageDiv = document.createElement('div');
                     messageDiv.className = `message ${msg.is_mine ? 'mine' : ''}`;
                     
@@ -1608,11 +1675,14 @@
                     lastMessageId = msg.id;
                 });
                 
+                // Auto-scroll to bottom
                 if (messages.length > 0) {
-                    container.scrollTop = container.scrollHeight;
+                    scrollToBottom();
                 }
             } catch (error) {
                 console.error('Failed to load messages:', error);
+            } finally {
+                processingMessage = false;
             }
         }
 
@@ -1807,6 +1877,15 @@
         }
 
         function startChat(peerUsername) {
+            // Clear any existing polling first
+            if (messagePollingInterval) {
+                clearInterval(messagePollingInterval);
+                messagePollingInterval = null;
+            }
+            
+            // Clear message cache for new session
+            messageCache.clear();
+            
             document.getElementById('noChatSelected').style.display = 'none';
             document.getElementById('chatContainer').style.display = 'flex';
             document.getElementById('chatWith').textContent = `Chat with ${peerUsername}`;
@@ -1814,7 +1893,9 @@
             
             lastMessageId = null;
             loadMessages();
-            messagePollingInterval = setInterval(loadMessages, 2000);
+            
+            // Use longer interval to prevent overlap
+            messagePollingInterval = setInterval(loadMessages, 3000); // Increased from 2000
         }
 
         function endChat() {
@@ -2077,7 +2158,9 @@
         document.getElementById('messageInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                if (!processingMessage) { // Check flag
+                    sendMessage();
+                }
             }
         });
 
