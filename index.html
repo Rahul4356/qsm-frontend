@@ -952,16 +952,10 @@
             QUANTUM_API = 'http://localhost:8001';
             WS_BASE = 'ws://localhost:8000';
         } else if (isAzure) {
-            // Azure deployment
-            const protocol = window.location.protocol;
-            const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
-            const hostname = window.location.hostname;
-            
-            // For Azure, both services might be on the same domain with different paths
-            // or on different subdomains
-            API_BASE = `${protocol}//${hostname}`;
-            QUANTUM_API = `${protocol}//${hostname}`;  // Update if quantum service is on different subdomain
-            WS_BASE = `${wsProtocol}//${hostname}`;
+            // Azure deployment - point to backend Azure Web App
+            API_BASE = 'https://qsm-gwd4cmeadnfxhx.southeastasia-01.azurewebsites.net';
+            QUANTUM_API = 'https://qsm-gwd4cmeadnfxhx.southeastasia-01.azurewebsites.net';
+            WS_BASE = 'wss://qsm-gwd4cmeadnfxhx.southeastasia-01.azurewebsites.net';
         } else {
             // Other deployments
             API_BASE = window.location.origin;
