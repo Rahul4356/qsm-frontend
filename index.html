@@ -939,11 +939,44 @@
             });
         }
 
-        // Configuration - Azure Backend
-        const API_BASE = 'https://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net';
-        const QUANTUM_API = 'https://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3dHV0aGVoZWZqYWplZGd5YWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU5MTI5NDAsImV4cCI6MjA0MTQ4ODk0MH0.sFpTKrxG1dRnB1VBHnWzPKdLaUYK5C2KG8h-BSZW6qU';
-        const WS_BASE = 'wss://qsm-gwd4cmeadnfhfxhx.southeastasia-01.azurewebsites.net'; // WebSocket for real-time updates
+        // Dynamic configuration based on environment
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isAzure = window.location.hostname.includes('azurewebsites.net') || window.location.hostname.includes('azurestaticapps.net');
+
+        // Auto-detect backend URLs
+        let API_BASE, QUANTUM_API, WS_BASE;
+
+        if (isLocalhost) {
+            // Local development
+            API_BASE = 'http://localhost:8000';
+            QUANTUM_API = 'http://localhost:8001';
+            WS_BASE = 'ws://localhost:8000';
+        } else if (isAzure) {
+            // Azure deployment
+            const protocol = window.location.protocol;
+            const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            
+            // For Azure, both services might be on the same domain with different paths
+            // or on different subdomains
+            API_BASE = `${protocol}//${hostname}`;
+            QUANTUM_API = `${protocol}//${hostname}`;  // Update if quantum service is on different subdomain
+            WS_BASE = `${wsProtocol}//${hostname}`;
+        } else {
+            // Other deployments
+            API_BASE = window.location.origin;
+            QUANTUM_API = window.location.origin;
+            WS_BASE = window.location.origin.replace(/^http/, 'ws');
+        }
+
+        // Override with explicit configuration if provided
+        if (window.QMS_CONFIG) {
+            API_BASE = window.QMS_CONFIG.API_BASE || API_BASE;
+            QUANTUM_API = window.QMS_CONFIG.QUANTUM_API || QUANTUM_API;
+            WS_BASE = window.QMS_CONFIG.WS_BASE || WS_BASE;
+        }
+
+        console.log('QMS Configuration:', { API_BASE, QUANTUM_API, WS_BASE });
         
         let authToken = null;
         let currentUser = null;
@@ -958,6 +991,43 @@
         let currentMessageType = 'secured';
         let lastMessageId = null;
         let isQuantumReady = false;
+
+        // Load configuration from backend
+        async function loadConfiguration() {
+            try {
+                const response = await fetch(`${API_BASE}/api/config`);
+                if (response.ok) {
+                    const config = await response.json();
+                    console.log('Loaded backend configuration:', config);
+                    
+                    // Update WebSocket availability based on backend config
+                    if (config.websocket_enabled === false) {
+                        useWebSocket = false;
+                        console.log('WebSocket disabled by backend configuration');
+                    }
+                    
+                    // Store environment info
+                    window.QMS_ENV = config.environment;
+                }
+            } catch (error) {
+                console.error('Failed to load backend configuration:', error);
+            }
+        }
+
+        // Call on page load
+        window.addEventListener('load', async () => {
+            await loadConfiguration();
+            
+            // Continue with existing initialization
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            
+            if (token && username) {
+                authToken = token;
+                currentUser = username;
+                showChat();
+            }
+        });
 
         // Progress Modal Functions
         function showProgress(title, steps) {
@@ -1013,6 +1083,38 @@
             }, 2000);
         }
 
+        // API call helper function with Azure-specific error handling
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                        ...options.headers
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+                    throw new Error(error.detail || `HTTP ${response.status}`);
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('API call failed:', error);
+                
+                // Handle Azure-specific errors
+                if (error.message.includes('Failed to fetch')) {
+                    showError('Connection to server failed. Please check your internet connection.');
+                } else {
+                    showError(error.message);
+                }
+                
+                throw error;
+            }
+        }
+
         // Message Type Selection
         function setMessageType(type) {
             currentMessageType = type;
@@ -1037,8 +1139,7 @@
                 const response = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(loginData)
                 });
@@ -1073,8 +1174,7 @@
                 const response = await fetch(`${API_BASE}/api/register`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(userData)
                 });
@@ -1144,7 +1244,8 @@
             try {
                 const response = await fetch(`${QUANTUM_API}/info`, {
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
                     }
                 });
                 if (response.ok) {
@@ -1279,7 +1380,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify({user_id: currentUser})
                 });
@@ -1517,9 +1618,8 @@
             try {
                 const response = await fetch(`${API_BASE}/api/connection/pending`, {
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${authToken}`,
-                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
                     }
                 });
                 
@@ -1565,7 +1665,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify({user_id: currentUser})
                 });
@@ -1582,9 +1682,7 @@
                 const response = await fetch(`${API_BASE}/api/connection/respond`, {
                     method: 'POST',
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${authToken}`,
-                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -1637,9 +1735,7 @@
                     await fetch(`${API_BASE}/api/connection/respond`, {
                         method: 'POST',
                         headers: {
-                            'apikey': SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${authToken}`,
-                            'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({request_id: requestId, accept: false})
@@ -1660,9 +1756,8 @@
             try {
                 const response = await fetch(`${API_BASE}/api/session/status`, {
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${authToken}`,
-                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -1736,9 +1831,8 @@
                 await fetch(`${API_BASE}/api/session/terminate`, {
                     method: 'POST',
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${authToken}`,
-                        'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -1797,9 +1891,7 @@
                         await fetch(`${API_BASE}/api/logout`, {
                             method: 'POST',
                             headers: {
-                                'apikey': SUPABASE_ANON_KEY,
                                 'Authorization': `Bearer ${authToken}`,
-                                'X-Supabase-Auth': `Bearer ${SUPABASE_ANON_KEY}`,
                                 'Content-Type': 'application/json'
                             }
                         });
@@ -1832,45 +1924,68 @@
         function initWebSocket() {
             if (!authToken || !currentUser || websocket) return;
             
+            // Check if WebSocket is disabled
+            if (window.QMS_ENV === 'production' && useWebSocket === false) {
+                console.log('WebSocket disabled in production');
+                return;
+            }
+            
             try {
-                console.log('🔌 Attempting WebSocket connection to:', `${WS_BASE}/ws/${currentUser}`);
-                websocket = new WebSocket(`${WS_BASE}/ws/${currentUser}`);
+                const wsUrl = `${WS_BASE}/ws/${currentUser}`;
+                console.log('Attempting WebSocket connection to:', wsUrl);
+                
+                websocket = new WebSocket(wsUrl);
                 
                 websocket.onopen = function() {
-                    console.log('✅ WebSocket connected - Real-time mode enabled');
+                    console.log('WebSocket connected - Real-time mode enabled');
                     useWebSocket = true;
                     
-                    // Clear the polling timeout since WebSocket connected
                     if (window.pollStartTimeout) {
                         clearTimeout(window.pollStartTimeout);
                         window.pollStartTimeout = null;
                     }
                     
-                    // Stop polling immediately since WebSocket is working
+                    // Stop polling
                     if (usersPollingInterval) {
                         clearInterval(usersPollingInterval);
                         usersPollingInterval = null;
-                        console.log('🛑 Stopped users polling');
                     }
                     if (requestsPollingInterval) {
                         clearInterval(requestsPollingInterval);
                         requestsPollingInterval = null;
-                        console.log('🛑 Stopped requests polling');
                     }
                     if (sessionPollingInterval) {
                         clearInterval(sessionPollingInterval);
                         sessionPollingInterval = null;
-                        console.log('🛑 Stopped session polling');
                     }
                     
-                    console.log('🎉 All polling stopped - WebSocket active!');
-                    
-                    // Send heartbeat every 30 seconds to keep connection alive
+                    // Send heartbeat every 30 seconds
                     setInterval(() => {
                         if (websocket && websocket.readyState === WebSocket.OPEN) {
                             websocket.send(JSON.stringify({ type: 'heartbeat' }));
                         }
                     }, 30000);
+                };
+                
+                websocket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    useWebSocket = false;
+                    
+                    // Fall back to polling
+                    if (!usersPollingInterval && authToken) {
+                        startPolling();
+                    }
+                };
+                
+                websocket.onclose = function(event) {
+                    console.log('WebSocket disconnected - Code:', event.code);
+                    websocket = null;
+                    useWebSocket = false;
+                    
+                    // Restart polling if still logged in
+                    if (authToken && currentUser) {
+                        startPolling();
+                    }
                 };
                 
                 websocket.onmessage = function(event) {
@@ -1907,31 +2022,23 @@
                     }
                 };
                 
-                websocket.onclose = function(event) {
-                    console.log('🔌 WebSocket disconnected - Code:', event.code, 'Reason:', event.reason);
-                    console.log('🔄 Falling back to polling mode');
-                    websocket = null;
-                    useWebSocket = false;
-                    
-                    // Restart polling as fallback only if user is still logged in
-                    if (authToken && currentUser) {
-                        console.log('🔄 Starting polling fallback...');
-                        usersPollingInterval = setInterval(loadUsers, 5000);
-                        requestsPollingInterval = setInterval(checkPendingRequests, 3000);
-                        sessionPollingInterval = setInterval(checkSessionStatus, 5000);
-                    }
-                };
-                
-                websocket.onerror = function(error) {
-                    console.error('❌ WebSocket error:', error);
-                    console.log('🔧 WebSocket state:', websocket ? websocket.readyState : 'null');
-                    useWebSocket = false;
-                };
-                
             } catch (error) {
-                console.error('❌ WebSocket initialization failed:', error);
-                console.log('🔄 WebSocket not available, will use polling');
+                console.error('WebSocket initialization failed:', error);
                 useWebSocket = false;
+                startPolling();
+            }
+        }
+
+        // Helper function to start polling
+        function startPolling() {
+            if (!usersPollingInterval) {
+                usersPollingInterval = setInterval(loadUsers, 5000);
+            }
+            if (!requestsPollingInterval) {
+                requestsPollingInterval = setInterval(checkPendingRequests, 3000);
+            }
+            if (!sessionPollingInterval) {
+                sessionPollingInterval = setInterval(checkSessionStatus, 5000);
             }
         }
         
