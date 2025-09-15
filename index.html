@@ -1397,6 +1397,12 @@
                 updateStep(2, 'completed');
                 
                 updateStep(3, 'active');
+                console.log('🔄 Sending connection request to:', `${API_BASE}/api/connection/request`);
+                console.log('📤 Request payload:', {
+                    receiver_username: username,
+                    sender_public_keys: publicKeys ? 'Present' : 'Missing'
+                });
+                
                 const response = await fetch(`${API_BASE}/api/connection/request`, {
                     method: 'POST',
                     headers: {
@@ -1405,42 +1411,49 @@
                     },
                     body: JSON.stringify({
                         receiver_username: username,
-                        sender_public_keys: publicKeys,
-                        metadata: {
-                            client_version: '2.0.0',
-                            timestamp: new Date().toISOString()
-                        }
+                        sender_public_keys: publicKeys
                     })
                 });
                 
+                console.log('📥 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('❌ Connection request failed:', error);
+                    throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
-                if (response.ok) {
-                    updateStep(3, 'completed');
-                    showCryptoDetails({
-                        'ML-KEM Public Key': '1184 bytes generated',
-                        'Falcon Public Key': '897 bytes generated',
-                        'ECDSA Public Key': '91 bytes generated',
-                        'Total Key Material': '2172 bytes',
-                        'Security Level': 'NIST Level 3',
-                        'Implementation': keyData.quantum_implementation || 'Unknown'
-                    });
-                    hideProgress();
-                    
-                    document.getElementById('cryptoStatus').innerHTML = `
-                        <strong>🔐 Keys Generated:</strong><br>
-                        • ML-KEM-768 (1184 bytes)<br>
-                        • Falcon-512 (897 bytes)<br>
-                        • ECDSA-P256 (91 bytes)<br>
-                        <small>Waiting for ${username} to accept...</small>
-                    `;
-                    document.getElementById('cryptoStatus').style.display = 'block';
+                updateStep(3, 'completed');
+                
+                showCryptoDetails({
+                    'ML-KEM Public Key': '1184 bytes generated',
+                    'Falcon Public Key': '897 bytes generated',
+                    'ECDSA Public Key': '91 bytes generated',
+                    'Total Key Material': '2172 bytes',
+                    'Security Level': 'NIST Level 3',
+                    'Implementation': keyData.quantum_implementation || 'Unknown'
+                });
+                hideProgress();
+                
+                document.getElementById('cryptoStatus').innerHTML = `
+                    <strong>🔐 Keys Generated:</strong><br>
+                    • ML-KEM-768 (1184 bytes)<br>
+                    • Falcon-512 (897 bytes)<br>
+                    • ECDSA-P256 (91 bytes)<br>
+                    <small>Waiting for ${username} to accept...</small>
+                `;
+                document.getElementById('cryptoStatus').style.display = 'block';
+                
+                if (data.status === 'already_pending') {
+                    showNotification('Request already pending', 'info');
                 } else {
-                    hideProgress();
-                    alert(data.detail || 'Failed to send request');
+                    showNotification(`Connection request sent to ${username}`, 'success');
                 }
             } catch (error) {
                 hideProgress();
-                alert('Connection error: ' + error.message);
+                console.error('Connection error:', error);
+                showError(`Connection failed: ${error.message}`);
             }
         }
 
@@ -1673,6 +1686,13 @@
                 updateStep(1, 'active');
                 await new Promise(r => setTimeout(r, 500));
                 
+                console.log('🔄 Sending connection response to:', `${API_BASE}/api/connection/respond`);
+                console.log('📤 Response payload:', {
+                    request_id: requestId,
+                    accept: true,
+                    receiver_public_keys: publicKeys ? 'Present' : 'Missing'
+                });
+                
                 const response = await fetch(`${API_BASE}/api/connection/respond`, {
                     method: 'POST',
                     headers: {
@@ -1682,44 +1702,47 @@
                     body: JSON.stringify({
                         request_id: requestId,
                         accept: true,
-                        receiver_public_keys: publicKeys,
-                        metadata: {
-                            client_version: '2.0.0',
-                            timestamp: new Date().toISOString()
-                        }
+                        receiver_public_keys: publicKeys
                     })
                 });
                 
-                const data = await response.json();
-                if (response.ok) {
-                    updateStep(1, 'completed');
-                    updateStep(2, 'active');
-                    await new Promise(r => setTimeout(r, 500));
-                    updateStep(2, 'completed');
-                    updateStep(3, 'active');
-                    await new Promise(r => setTimeout(r, 500));
-                    updateStep(3, 'completed');
-                    
-                    currentSession = data;
-                    hideProgress();
-                    startChat(data.peer_username);
-                    
-                    document.getElementById('sessionInfo').style.display = 'block';
-                    document.getElementById('sessionId').textContent = data.session_id.substring(0, 8) + '...';
-                    
-                    document.getElementById('cryptoStatus').innerHTML = `
-                        <strong>🔐 Quantum Session Active:</strong><br>
-                        • Algorithm: ${data.quantum_algorithm || 'ML-KEM-768'}<br>
-                        • Encryption: AES-256-GCM<br>
-                        • Signatures: Falcon-512 + ECDSA<br>
-                    `;
-                    document.getElementById('cryptoStatus').style.display = 'block';
+                console.log('📥 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('❌ Connection accept failed:', error);
+                    throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                const data = await response.json();
+                updateStep(1, 'completed');
+                updateStep(2, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(2, 'completed');
+                updateStep(3, 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(3, 'completed');
+                
+                currentSession = data;
+                hideProgress();
+                startChat(data.peer_username);
+                
+                document.getElementById('sessionInfo').style.display = 'block';
+                document.getElementById('sessionId').textContent = data.session_id.substring(0, 8) + '...';
+                
+                document.getElementById('cryptoStatus').innerHTML = `
+                    <strong>🔐 Quantum Session Active:</strong><br>
+                    • Algorithm: ${data.quantum_algorithm || 'ML-KEM-768'}<br>
+                    • Encryption: AES-256-GCM<br>
+                    • Signatures: Falcon-512 + ECDSA<br>
+                `;
+                document.getElementById('cryptoStatus').style.display = 'block';
                 
                 checkPendingRequests();
             } catch (error) {
                 hideProgress();
-                alert('Failed to accept request: ' + error.message);
+                console.error('Failed to accept connection:', error);
+                showError(`Failed to accept request: ${error.message}`);
             }
         }
 
